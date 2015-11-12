@@ -1,0 +1,20 @@
+sudo: required
+services:
+  - docker
+install:
+  - docker build -t test-integration-linkfile:latest .
+  - >
+    docker run
+    -e "CIRCLE_PROJECT_REPONAME=$(echo $TRAVIS_REPO_SLUG | cut -f2 -d '/')"
+    -e "CIRCLE_BUILD_NUM=${TRAVIS_BUILD_NUMBER}"
+    -e "IMAGE=${IMAGE:-coreos-beta}"
+    -e "CHANNEL=${CHANNEL:-development}"
+    -e "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}"                                                                                                                                                                                                    
+    -e "AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}"                                                                                                                                                                                            
+    --name=test-integration-linkfile-init test-integration-linkfile:latest /initialize.sh
+  - docker commit test-integration-linkfile-init test-integration-linkfile:latest
+script:
+  - docker run --name=test-integration-linkfile test-integration-linkfile:latest /run_tests.sh
+after_script:
+  - docker run --name=DUMP-test-integration-linkfile test-integration-linkfile:latest vagrant ssh -- sudo journalctl
+  - docker run --name=DESTROY-test-integration-linkfile test-integration-linkfile:latest vagrant destroy -f
